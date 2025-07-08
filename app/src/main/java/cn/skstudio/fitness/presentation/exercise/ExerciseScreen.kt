@@ -22,6 +22,7 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
+import kotlinx.coroutines.launch
 
 /**
  * 动作练习页面
@@ -37,16 +38,36 @@ fun ExerciseScreen(
     val exercise = remember { exerciseRepository.getExerciseById(exerciseId) }
     val poseDetector = remember { MLKitPoseDetector() }
     val exerciseAnalyzer = remember { ExerciseAnalyzer() }
+    val scope = rememberCoroutineScope()
     
     var currentPosePoints by remember { mutableStateOf<List<PosePoint>>(emptyList()) }
     var feedback by remember { mutableStateOf("准备开始...") }
     var score by remember { mutableStateOf(0f) }
+    var isDetecting by remember { mutableStateOf(false) }
     
     // 相机权限处理
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
     
+    // 启动姿态检测
     LaunchedEffect(Unit) {
-        poseDetector.startDetection()
+        scope.launch {
+            poseDetector.startDetection().collect { posePoints ->
+                currentPosePoints = posePoints
+                isDetecting = true
+                
+                // 分析动作
+                if (posePoints.isNotEmpty() && exercise != null) {
+                    val analysisResult = exerciseAnalyzer.analyzePose(
+                        posePoints = posePoints,
+                        exercise = exercise
+                    )
+                    feedback = analysisResult.feedback
+                    score = analysisResult.overallScore
+                } else if (posePoints.isEmpty()) {
+                    feedback = "未检测到姿态，请调整位置"
+                }
+            }
+        }
     }
     
     DisposableEffect(Unit) {
@@ -87,17 +108,7 @@ fun ExerciseScreen(
                 CameraPreview(
                     poseDetector = poseDetector,
                     onPoseDetected = { posePoints ->
-                        currentPosePoints = posePoints
-                        
-                        // 分析动作
-                        if (posePoints.isNotEmpty()) {
-                            val analysisResult = exerciseAnalyzer.analyzePose(
-                                posePoints = posePoints,
-                                exercise = exercise
-                            )
-                            feedback = analysisResult.feedback
-                            score = analysisResult.overallScore
-                        }
+                        // 这里不需要重复处理，因为已经在 LaunchedEffect 中处理了
                     }
                 )
                 
@@ -164,7 +175,11 @@ fun ExerciseScreen(
                     )
                 ) {
                     Text(
-                        text = "请将全身置于画面中",
+                        text = if (isDetecting && currentPosePoints.isNotEmpty()) {
+                            "检测到姿态，正在分析..."
+                        } else {
+                            "请将全身置于画面中"
+                        },
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                         style = MaterialTheme.typography.labelLarge
                     )

@@ -12,6 +12,7 @@ import com.google.mlkit.vision.pose.accurate.AccuratePoseDetectorOptions
 import com.google.mlkit.vision.pose.defaults.PoseDetectorOptions
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -26,20 +27,17 @@ class MLKitPoseDetector @Inject constructor() : PoseDetector {
     private var poseDetector: com.google.mlkit.vision.pose.PoseDetector? = null
     private var isDetecting = false
     private var useAccurateMode = false
+    private val poseFlow = MutableStateFlow<List<PosePoint>>(emptyList())
     
     /**
      * 开始姿态检测
      * @return 姿态点数据流
      */
-    override fun startDetection(): Flow<List<PosePoint>> = callbackFlow {
+    override fun startDetection(): Flow<List<PosePoint>> {
         // 初始化检测器
         initializeDetector()
         isDetecting = true
-        
-        // 设置关闭时的清理操作
-        awaitClose {
-            stopDetection()
-        }
+        return poseFlow
     }
     
     /**
@@ -49,6 +47,7 @@ class MLKitPoseDetector @Inject constructor() : PoseDetector {
         isDetecting = false
         poseDetector?.close()
         poseDetector = null
+        poseFlow.value = emptyList()
     }
     
     /**
@@ -89,15 +88,19 @@ class MLKitPoseDetector @Inject constructor() : PoseDetector {
             poseDetector?.process(image)
                 ?.addOnSuccessListener { pose ->
                     val posePoints = convertToPosePoints(pose)
+                    poseFlow.value = posePoints
                     onPoseDetected(posePoints)
                 }
                 ?.addOnFailureListener { e ->
                     // 处理检测失败
                     e.printStackTrace()
+                    poseFlow.value = emptyList()
                 }
                 ?.addOnCompleteListener {
                     imageProxy.close()
                 }
+        } else {
+            imageProxy.close()
         }
     }
     
