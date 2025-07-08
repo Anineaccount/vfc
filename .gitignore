@@ -14,8 +14,6 @@
 bin/
 gen/
 out/
-#  Uncomment the following line in case you need and you don't have the release build type files in your app
-# release/
 
 # Gradle files
 .gradle/
@@ -38,6 +36,7 @@ captures/
 
 # IntelliJ
 *.iml
+# 只忽略 IDE 的临时配置文件
 .idea/workspace.xml
 .idea/tasks.xml
 .idea/gradle.xml
@@ -45,14 +44,11 @@ captures/
 .idea/dictionaries
 .idea/libraries
 .idea/jarRepositories.xml
-# Android Studio 3 in .gitignore file.
 .idea/caches
 .idea/modules.xml
-# Comment next line if keeping position of elements in Navigation Editor is desired for your project
 .idea/navEditor.xml
 
 # Keystore files
-# Uncomment the following lines if you do not want to check your keystore files in.
 *.jks
 *.keystore
 
@@ -69,7 +65,6 @@ freeline/
 freeline_project_description.json
 
 # fastlane
-fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots
 fastlane/test_output
@@ -83,7 +78,6 @@ lint/intermediates/
 lint/generated/
 lint/outputs/
 lint/tmp/
-# lint/reports/
 
 # Android Profiling
 *.hprof
@@ -157,7 +151,6 @@ $RECYCLE.BIN/
 
 # IDE
 .vscode/
-.idea/
 *.swp
 *.swo
 *~
@@ -198,177 +191,16 @@ logs/
 
 # 临时文件
 temp/
-tmp/
 
-# 配置文件（包含敏感信息）
-config.properties
-secrets.properties
-google-services.json
-GoogleService-Info.plist
-
-# 构建产物
-app/build/
-app/release/
-app/debug/
-
-# 依赖缓存
-.gradle/
-buildSrc/.gradle/
-
-# 本地配置文件
-local.properties
-local.gradle.properties
-
-# 签名文件
-*.jks
-*.keystore
-*.p12
-*.pfx
-
-# 证书文件
-*.cer
-*.crt
-*.pem
-
-# 备份文件
-*.orig
-*.rej
-*.bak
-*.backup
-
-# 压缩文件
-*.zip
-*.tar.gz
-*.rar
-*.7z
-
-# 文档临时文件
-*.docx~
-*.xlsx~
-*.pptx~
-
-# 系统文件
-.DS_Store
-Thumbs.db
-desktop.ini
-
-# 编辑器文件
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# 临时目录
-.tmp/
-temp/
-tmp/
-
-# 缓存目录
-.cache/
-cache/
-
-# 日志目录
-logs/
-*.log
-
-# 测试报告
-test-results/
-coverage/
-*.coverage
-
-# 构建报告
-build/reports/
-app/build/reports/
-
-# 性能分析文件
-*.hprof
-*.prof
-
-# 崩溃报告
-crash-reports/
-*.crash
-
-# 应用数据（开发时）
-app_data/
-debug_data/
-
-# 截图和录制文件
-screenshots/
-recordings/
-*.mp4
-*.avi
-*.mov
-
-# 模型文件（如果很大）
-models/
-*.model
-*.weights
-
-# 数据集文件
-datasets/
-*.csv
-*.json
-*.xml
-
-# 环境配置文件
-.env
-.env.local
-.env.development
-.env.production
-
-# 密钥和证书
-keys/
-certificates/
-*.pem
-*.key
-*.crt
-*.cer
-
-# 本地开发配置
-local/
-dev/
-development/
-
-# 备份和存档
-backup/
-archive/
-*.backup
-*.old
-
-# 临时构建文件
-*.o
-*.obj
-*.so
-*.dll
-*.dylib
-
-# 编译输出
-bin/
-obj/
-out/
-target/
-
-# 包管理器文件
-node_modules/
-vendor/
-bower_components/
-
-# 数据库文件
-*.db
-*.sqlite
-*.sqlite3
-
-# 配置文件（可能包含敏感信息）
-config/
-settings/
-*.conf
-*.config
-
-# 用户特定文件
-user/
-personal/
-*.user
-
-# 项目特定忽略
-# 如果有特定的项目文件需要忽略，在这里添加
+# 重要说明：以下文件类型应该被版本控制，不要忽略
+# - *.xml (资源文件、配置文件等)
+# - *.kt (Kotlin 源代码)
+# - *.java (Java 源代码)
+# - *.gradle (Gradle 构建脚本)
+# - *.properties (项目属性文件)
+# - *.md (文档文件)
+# - *.txt (文本文件)
+# - *.sh (脚本文件)
+# - *.bat (批处理文件)
+# - *.jar (Gradle Wrapper JAR)
+# - *.pro (ProGuard 规则文件)
