@@ -1,5 +1,6 @@
 package cn.skstudio.fitness.data.repository
 
+import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageProxy
 import cn.skstudio.fitness.domain.model.PoseLandmarkType
 import cn.skstudio.fitness.domain.model.PosePoint
@@ -10,10 +11,8 @@ import com.google.mlkit.vision.pose.PoseDetection
 import com.google.mlkit.vision.pose.PoseLandmark
 import com.google.mlkit.vision.pose.accurate.AccuratePoseDetectorOptions
 import com.google.mlkit.vision.pose.defaults.PoseDetectorOptions
-import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.callbackFlow
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -72,6 +71,7 @@ class MLKitPoseDetector @Inject constructor() : PoseDetector {
      * @param imageProxy 相机图像代理
      * @param onPoseDetected 检测到姿态时的回调
      */
+    @ExperimentalGetImage
     fun processImageProxy(
         imageProxy: ImageProxy,
         onPoseDetected: (List<PosePoint>) -> Unit
@@ -87,7 +87,12 @@ class MLKitPoseDetector @Inject constructor() : PoseDetector {
             
             poseDetector?.process(image)
                 ?.addOnSuccessListener { pose ->
-                    val posePoints = convertToPosePoints(pose)
+                    val posePoints = convertToPosePoints(
+                        pose = pose,
+                        imageWidth = imageProxy.width,
+                        imageHeight = imageProxy.height,
+                        rotationDegrees = imageProxy.imageInfo.rotationDegrees
+                    )
                     poseFlow.value = posePoints
                     onPoseDetected(posePoints)
                 }
@@ -120,20 +125,36 @@ class MLKitPoseDetector @Inject constructor() : PoseDetector {
         
         poseDetector = PoseDetection.getClient(options)
     }
-    
+
     /**
-     * 将ML Kit的Pose转换为应用的PosePoint列表
+     * 将ML Kit的Pose转换为应用的PosePoint列表（坐标归一化到0-1）
      */
-    private fun convertToPosePoints(pose: Pose): List<PosePoint> {
+    private fun convertToPosePoints(
+        pose: Pose,
+        imageWidth: Int,
+        imageHeight: Int,
+        rotationDegrees: Int
+    ): List<PosePoint> {
+        val effectiveWidth: Float
+        val effectiveHeight: Float
+
+        if (rotationDegrees == 90 || rotationDegrees == 270) {
+            effectiveWidth = imageHeight.toFloat().coerceAtLeast(1f)
+            effectiveHeight = imageWidth.toFloat().coerceAtLeast(1f)
+        } else {
+            effectiveWidth = imageWidth.toFloat().coerceAtLeast(1f)
+            effectiveHeight = imageHeight.toFloat().coerceAtLeast(1f)
+        }
+
         return pose.allPoseLandmarks.mapNotNull { landmark ->
             val type = mapLandmarkType(landmark.landmarkType)
             type?.let {
                 PosePoint(
                     type = it,
-                    x = landmark.position.x,
-                    y = landmark.position.y,
+                    x = (landmark.position.x / effectiveWidth).coerceIn(0f, 1f),
+                    y = (landmark.position.y / effectiveHeight).coerceIn(0f, 1f),
                     z = landmark.position3D.z,
-                    confidence = landmark.inFrameLikelihood
+                    confidence = landmark.inFrameLikelihood.coerceIn(0f, 1f)
                 )
             }
         }
@@ -180,4 +201,4 @@ class MLKitPoseDetector @Inject constructor() : PoseDetector {
             else -> null
         }
     }
-} 
+}

@@ -100,6 +100,7 @@ git clone https://github.com/yourusername/VirtualFitnessCoach.git
 - **[快速开始指南](QUICK_START.md)** - 5分钟上手，包含环境配置和基本操作
 - **[高级调试指南](DEBUG_GUIDE.md)** - 调试技巧、问题解决和高级功能
 - **[图标替换指南](ICON_REPLACEMENT_GUIDE.md)** - 应用图标替换方法，支持 Android Studio 和命令行两种方式
+- **[项目分析与上下文参考](PROJECT_ANALYSIS.md)** - 项目架构、核心流程、风险点与后续会话参考入口
 
 ## 核心功能实现
 
@@ -144,4 +145,4 @@ git clone https://github.com/yourusername/VirtualFitnessCoach.git
 
 ---
 
-**注意**: 本应用仅供健身参考，不能替代专业健身教练的指导。使用时请注意安全，量力而行。 
+**注意**: 本应用仅供健身参考，不能替代专业健身教练的指导。使用时请注意安全，量力而行。

@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
@@ -16,6 +15,8 @@ import cn.skstudio.fitness.data.repository.MLKitPoseDetector
 import kotlinx.coroutines.launch
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import androidx.camera.core.resolutionselector.AspectRatioStrategy
+import androidx.camera.core.resolutionselector.ResolutionSelector
 
 /**
  * 相机预览组件
@@ -30,7 +31,7 @@ fun CameraPreview(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
     val scope = rememberCoroutineScope()
     
@@ -66,7 +67,7 @@ fun CameraPreview(
 /**
  * 启动相机
  */
-private suspend fun startCamera(
+private fun startCamera(
     context: Context,
     lifecycleOwner: LifecycleOwner,
     previewView: PreviewView,
@@ -75,13 +76,17 @@ private suspend fun startCamera(
     onPoseDetected: (List<cn.skstudio.fitness.domain.model.PosePoint>) -> Unit
 ) {
     val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
+
+    val resolutionSelector = ResolutionSelector.Builder()
+        .setAspectRatioStrategy(AspectRatioStrategy.RATIO_4_3_FALLBACK_AUTO_STRATEGY)
+        .build()
     
     cameraProviderFuture.addListener({
         val cameraProvider = cameraProviderFuture.get()
         
         // 创建预览用例
         val preview = Preview.Builder()
-            .setTargetAspectRatio(AspectRatio.RATIO_4_3)
+            .setResolutionSelector(resolutionSelector)
             .build()
             .also {
                 it.setSurfaceProvider(previewView.surfaceProvider)
@@ -89,7 +94,7 @@ private suspend fun startCamera(
         
         // 创建图像分析用例
         val imageAnalyzer = ImageAnalysis.Builder()
-            .setTargetAspectRatio(AspectRatio.RATIO_4_3)
+            .setResolutionSelector(resolutionSelector)
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
             .build()
@@ -119,4 +124,4 @@ private suspend fun startCamera(
             exc.printStackTrace()
         }
     }, ContextCompat.getMainExecutor(context))
-} 
+}

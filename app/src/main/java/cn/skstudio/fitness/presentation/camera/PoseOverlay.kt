@@ -20,11 +20,12 @@ import cn.skstudio.fitness.domain.model.PosePoint
 @Composable
 fun PoseOverlay(
     posePoints: List<PosePoint>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    mirrorHorizontally: Boolean = true
 ) {
     Canvas(modifier = modifier.fillMaxSize()) {
         if (posePoints.isNotEmpty()) {
-            drawPose(posePoints)
+            drawPose(posePoints, mirrorHorizontally)
         }
     }
 }
@@ -32,53 +33,64 @@ fun PoseOverlay(
 /**
  * 绘制姿态
  */
-private fun DrawScope.drawPose(posePoints: List<PosePoint>) {
+private fun DrawScope.drawPose(
+    posePoints: List<PosePoint>,
+    mirrorHorizontally: Boolean
+) {
     val poseMap = posePoints.associateBy { it.type }
-    
+
     // 绘制骨架连接线
-    drawBodyConnections(poseMap)
-    
+    drawBodyConnections(poseMap, mirrorHorizontally)
+
     // 绘制关键点
     posePoints.forEach { point ->
-        drawPosePoint(point)
+        drawPosePoint(point, mirrorHorizontally)
     }
 }
 
 /**
  * 绘制单个姿态关键点
  */
-private fun DrawScope.drawPosePoint(point: PosePoint) {
+private fun DrawScope.drawPosePoint(point: PosePoint, mirrorHorizontally: Boolean) {
     val color = when {
-        point.confidence > 0.8f -> Color.Green
-        point.confidence > 0.5f -> Color.Yellow
-        else -> Color.Red
+        point.confidence > 0.8f -> Color(0xFF00E676)
+        point.confidence > 0.5f -> Color(0xFFFFD54F)
+        else -> Color(0xFFFF5252)
     }
-    
-    val center = Offset(
-        x = point.x * size.width,
-        y = point.y * size.height
-    )
-    
-    // 绘制实心圆点
+
+    val center = point.toCanvasOffset(size.width, size.height, mirrorHorizontally)
+
+    // 外圈描边，提升复杂背景下可见性
     drawCircle(
-        color = color,
-        radius = 8f,
-        center = center
-    )
-    
-    // 绘制外圈
-    drawCircle(
-        color = color,
-        radius = 12f,
+        color = Color.Black.copy(alpha = 0.65f),
+        radius = 14f,
         center = center,
-        style = Stroke(width = 2f)
+        style = Stroke(width = 4f)
+    )
+
+    // 中间色圈
+    drawCircle(
+        color = color,
+        radius = 10f,
+        center = center,
+        style = Stroke(width = 3f)
+    )
+
+    // 核心点
+    drawCircle(
+        color = Color.White,
+        radius = 5f,
+        center = center
     )
 }
 
 /**
  * 绘制身体骨架连接线
  */
-private fun DrawScope.drawBodyConnections(poseMap: Map<PoseLandmarkType, PosePoint>) {
+private fun DrawScope.drawBodyConnections(
+    poseMap: Map<PoseLandmarkType, PosePoint>,
+    mirrorHorizontally: Boolean
+) {
     // 定义身体连接关系
     val connections = listOf(
         // 面部连接
@@ -91,7 +103,7 @@ private fun DrawScope.drawBodyConnections(poseMap: Map<PoseLandmarkType, PosePoi
         PoseLandmarkType.RIGHT_EYE to PoseLandmarkType.RIGHT_EYE_OUTER,
         PoseLandmarkType.RIGHT_EYE_OUTER to PoseLandmarkType.RIGHT_EAR,
         PoseLandmarkType.MOUTH_LEFT to PoseLandmarkType.MOUTH_RIGHT,
-        
+
         // 上半身连接
         PoseLandmarkType.LEFT_SHOULDER to PoseLandmarkType.RIGHT_SHOULDER,
         PoseLandmarkType.LEFT_SHOULDER to PoseLandmarkType.LEFT_ELBOW,
@@ -100,52 +112,71 @@ private fun DrawScope.drawBodyConnections(poseMap: Map<PoseLandmarkType, PosePoi
         PoseLandmarkType.LEFT_WRIST to PoseLandmarkType.LEFT_PINKY,
         PoseLandmarkType.LEFT_WRIST to PoseLandmarkType.LEFT_INDEX,
         PoseLandmarkType.LEFT_PINKY to PoseLandmarkType.LEFT_INDEX,
-        
+
         PoseLandmarkType.RIGHT_SHOULDER to PoseLandmarkType.RIGHT_ELBOW,
         PoseLandmarkType.RIGHT_ELBOW to PoseLandmarkType.RIGHT_WRIST,
         PoseLandmarkType.RIGHT_WRIST to PoseLandmarkType.RIGHT_THUMB,
         PoseLandmarkType.RIGHT_WRIST to PoseLandmarkType.RIGHT_PINKY,
         PoseLandmarkType.RIGHT_WRIST to PoseLandmarkType.RIGHT_INDEX,
         PoseLandmarkType.RIGHT_PINKY to PoseLandmarkType.RIGHT_INDEX,
-        
+
         // 躯干连接
         PoseLandmarkType.LEFT_SHOULDER to PoseLandmarkType.LEFT_HIP,
         PoseLandmarkType.RIGHT_SHOULDER to PoseLandmarkType.RIGHT_HIP,
         PoseLandmarkType.LEFT_HIP to PoseLandmarkType.RIGHT_HIP,
-        
+
         // 下半身连接
         PoseLandmarkType.LEFT_HIP to PoseLandmarkType.LEFT_KNEE,
         PoseLandmarkType.LEFT_KNEE to PoseLandmarkType.LEFT_ANKLE,
         PoseLandmarkType.LEFT_ANKLE to PoseLandmarkType.LEFT_HEEL,
         PoseLandmarkType.LEFT_ANKLE to PoseLandmarkType.LEFT_FOOT_INDEX,
         PoseLandmarkType.LEFT_HEEL to PoseLandmarkType.LEFT_FOOT_INDEX,
-        
+
         PoseLandmarkType.RIGHT_HIP to PoseLandmarkType.RIGHT_KNEE,
         PoseLandmarkType.RIGHT_KNEE to PoseLandmarkType.RIGHT_ANKLE,
         PoseLandmarkType.RIGHT_ANKLE to PoseLandmarkType.RIGHT_HEEL,
         PoseLandmarkType.RIGHT_ANKLE to PoseLandmarkType.RIGHT_FOOT_INDEX,
         PoseLandmarkType.RIGHT_HEEL to PoseLandmarkType.RIGHT_FOOT_INDEX
     )
-    
+
     // 绘制每条连接线
     connections.forEach { (start, end) ->
         val startPoint = poseMap[start]
         val endPoint = poseMap[end]
-        
+
         if (startPoint != null && endPoint != null) {
             val minConfidence = minOf(startPoint.confidence, endPoint.confidence)
-            val color = when {
-                minConfidence > 0.8f -> Color.Green.copy(alpha = 0.8f)
-                minConfidence > 0.5f -> Color.Yellow.copy(alpha = 0.8f)
-                else -> Color.Red.copy(alpha = 0.5f)
+            val lineColor = when {
+                minConfidence > 0.8f -> Color(0xFF00E676).copy(alpha = 0.9f)
+                minConfidence > 0.5f -> Color(0xFFFFD54F).copy(alpha = 0.85f)
+                else -> Color(0xFFFF5252).copy(alpha = 0.6f)
             }
-            
+
+            val startOffset = startPoint.toCanvasOffset(size.width, size.height, mirrorHorizontally)
+            val endOffset = endPoint.toCanvasOffset(size.width, size.height, mirrorHorizontally)
+
+            // 先画深色底线，再画亮色骨架线，增强可见性
             drawLine(
-                color = color,
-                start = Offset(startPoint.x * size.width, startPoint.y * size.height),
-                end = Offset(endPoint.x * size.width, endPoint.y * size.height),
-                strokeWidth = 3f
+                color = Color.Black.copy(alpha = 0.5f),
+                start = startOffset,
+                end = endOffset,
+                strokeWidth = 7f
+            )
+            drawLine(
+                color = lineColor,
+                start = startOffset,
+                end = endOffset,
+                strokeWidth = 4f
             )
         }
     }
-} 
+}
+
+private fun PosePoint.toCanvasOffset(
+    canvasWidth: Float,
+    canvasHeight: Float,
+    mirrorHorizontally: Boolean
+): Offset {
+    val mappedX = if (mirrorHorizontally) 1f - x else x
+    return Offset(mappedX * canvasWidth, y * canvasHeight)
+}
